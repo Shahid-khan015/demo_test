@@ -1,90 +1,85 @@
-from flask import Blueprint, jsonify, current_app
+from flask import Blueprint , jsonify
 import pandas as pd
-import cv2
-import base64
+import cv2 , base64
 import os
 from moviepy.editor import VideoFileClip, concatenate_videoclips
 import random
 import numpy as np
 import imageio
-from pathlib import Path
 
-api = Blueprint('api', __name__)
+
+api = Blueprint('api' , __name__)
 
 @api.route('/', methods=['GET', 'POST'])
 def addition_api():
-    # Use Path for cross-platform compatibility
-    base_dir = Path(current_app.root_path)
-    output_path = base_dir / 'static' / 'output' / 'mereg.mp4'
+    output_path = r"website\DataSet\Output\mereg.mp4"
     
     num1 = random.randint(0, 10)
     num2 = random.randint(0, 10)
-    add = num1 + num2
 
-    # Fix CSV paths
-    df = pd.read_csv(base_dir / 'static' / 'number.csv')
-    op = pd.read_csv(base_dir / 'static' / 'operator.csv')
+    add = num1 + num2
+    df = pd.read_csv(r'website\static\number.csv')
+    op = pd.read_csv(r'website\static\operator.csv')
 
     filtered_df1 = df[df['Number'] == num1]
     filtered_op = op[op['Operator'] == '+']
     filtered_df2 = df[df['Number'] == num2]
     filtered_sum = df[df['Number'] == add]
 
-    filtered_df = [filtered_df1, filtered_op, filtered_df2, filtered_sum]
+    filtered_df = [filtered_df1, filtered_op,  filtered_df2, filtered_sum]
 
+    found_links = False
     folder_path = []
     for fd in filtered_df:
         if not fd.empty:
-            folder_path.extend(fd['Links'].tolist())
+            found_links = True
 
-    if not folder_path:
-        return jsonify({"error": "No links found for the specified numbers."})
+            for link in fd['Links']:
+                folder_path.append(link)
+
+    if not found_links:
+        print(f"No links found for the specified numbers.")
 
     video_extensions = ('.mp4', '.avi', '.mov', '.mkv')
 
     def video_return(video_path):
         try:
-            if not os.path.exists(video_path):
-                return jsonify({"error": "Video file not found"})
-                
-            reader = imageio.get_reader(str(video_path))
-            frames_list = []
-
-            for frame in reader:
-                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                _, buffer = cv2.imencode('.png', frame)
-                encoded_image = base64.b64encode(buffer).decode('utf-8')
-                frames_list.append(encoded_image)
-
-            return jsonify({"data": frames_list})
+            reader = imageio.get_reader(video_path)
         except Exception as e:
-            return jsonify({"error": f"Could not process video: {str(e)}"})
+            return jsonify({"error": f"Could not open video: {str(e)}"})
 
-    def merge_videos(video_paths, output_path):
-        try:
-            clips = [VideoFileClip(str(path)) for path in video_paths if os.path.exists(path)]
-            if clips:
-                merged_clip = concatenate_videoclips(clips)
-                merged_clip.write_videofile(str(output_path), codec='libx264')
-                for clip in clips:
-                    clip.close()
-        except Exception as e:
-            print(f"Error merging videos: {str(e)}")
+        frames_list = []
+
+        for frame in reader:
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+            # frame = cv2.resize(frame, (128, 128))
+           
+            _, buffer = cv2.imencode('.png', frame)
+            encoded_image = base64.b64encode(buffer).decode('utf-8')
+            
+            frames_list.append(encoded_image)
+
+        return jsonify({"data": frames_list})
+
+    def merge_videos(video_path, output_path):
+
+        clip = [VideoFileClip(video_path) for video_path in video_path]
+
+        merged_clip = concatenate_videoclips(clip)
+        merged_clip.write_videofile(output_path, codec='libx264')
+
+        # for frame in merged_clip.iter_frames(fps=60, dtype='uint8'):
+        #     yield frame
 
     video_files = []
     for folder in folder_path:
-        folder_path = Path(folder)
-        if folder_path.is_dir():
-            video_files.extend([
-                str(folder_path / f) 
-                for f in folder_path.glob('*') 
-                if f.suffix.lower() in video_extensions
-            ])
+        if os.path.isdir(folder):
+            files = [f for f in os.listdir(
+                folder) if f.endswith(video_extensions)]
+            video_files.extend(os.path.join(folder, f) for f in files)
 
-    # Ensure output directory exists
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    
-    if not output_path.exists():
-        merge_videos(video_files, output_path)
+    # merge_videos(video_files, output_path)
 
     return video_return(output_path)
+
