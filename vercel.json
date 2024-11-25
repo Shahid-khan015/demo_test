@@ -3,7 +3,10 @@
   "builds": [
     {
       "src": "app.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "15mb"
+      }
     }
   ],
   "routes": [
@@ -12,10 +15,10 @@
       "dest": "app.py"
     }
   ],
-  "functions": {
-    "app.py": {
-      "memory": 1024,  
-      "maxDuration": 30 
-    }
-  }
+  "env": {
+    "PYTHONPATH": ".",
+    "PIP_NO_CACHE_DIR": "false",
+    "PIP_DISABLE_VERSION_CHECK": "1"
+  },
+  "buildCommand": "pip install --upgrade pip setuptools && pip install --no-cache-dir -r requirements.txt"
 }
