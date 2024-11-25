@@ -1,8 +1,8 @@
 from flask import Flask, jsonify
-
+  from website import create_app
 app = Flask(__name__)
 
-@app.route('/api/troubleshoot', methods=['GET'])
+@app.route('/troubleshoot', methods=['GET'])
 def troubleshoot():
     try:
         # Simulate some processing
@@ -11,5 +11,12 @@ def troubleshoot():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+  
+
+app = create_app()
+application = app
+
+# Remove debug mode for production
 if __name__ == '__main__':
     app.run()

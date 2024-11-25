@@ -8,13 +8,13 @@
     ],
     "routes": [
       {
-        "src": "troubleshoot",
+        "src": "/(.*)",
         "dest": "app.py"
       }
     ],
     "functions": {
-      "app.py": {
-        "memory": 1024,  
+      "api/app.py": {
+        "memory": 1024, 
         "maxDuration": 10 
       }
     }
