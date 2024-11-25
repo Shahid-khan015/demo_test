@@ -26,7 +26,9 @@
   },
   "buildCommand": "pip install --upgrade pip setuptools && pip install --no-cache-dir -r requirements.txt",
   "functions": {
-    "maxDuration": 10,
-    "memory": 1024
+    "app.py": {
+      "maxDuration": 10,
+      "memory": 1024
+    }
   }
 }
